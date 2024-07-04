@@ -26,12 +26,18 @@ class ClearSession(Resource):
         session['user_id'] = None
 
         return {}, 204
+api.add_resource(ClearSession, '/clear', endpoint='clear')
+
+
 
 class IndexArticle(Resource):
     
     def get(self):
         articles = [article.to_dict() for article in Article.query.all()]
         return make_response(jsonify(articles), 200)
+api.add_resource(IndexArticle, '/articles', endpoint='article_list')
+
+
 
 class ShowArticle(Resource):
 
@@ -50,6 +56,9 @@ class ShowArticle(Resource):
             return {'message': 'Maximum pageview limit reached'}, 401
 
         return article_json, 200
+api.add_resource(ShowArticle, '/articles/<int:id>', endpoint='show_article')
+
+
 
 class Login(Resource):
 
@@ -62,8 +71,10 @@ class Login(Resource):
         
             session['user_id'] = user.id
             return user.to_dict(), 200
-
         return {}, 401
+api.add_resource(Login, '/login', endpoint='login')
+
+
 
 class Logout(Resource):
 
@@ -72,6 +83,9 @@ class Logout(Resource):
         session['user_id'] = None
         
         return {}, 204
+api.add_resource(Logout, '/logout', endpoint='logout')
+
+
 
 class CheckSession(Resource):
 
@@ -83,24 +97,32 @@ class CheckSession(Resource):
             return user.to_dict(), 200
         
         return {}, 401
+api.add_resource(CheckSession, '/check_session', endpoint='check_session')
+
+
 
 class MemberOnlyIndex(Resource):
-    
     def get(self):
-        pass
+        if not session.get('user_id'):
+            return {'message': 'Unauthorized'}, 401
+
+        articles = [article.to_dict() for article in Article.query.filter(Article.is_member_only == True).all()]
+        return make_response(articles, 200)
+    
+api.add_resource(MemberOnlyIndex, '/members_only_articles', endpoint='member_index')
+
+
 
 class MemberOnlyArticle(Resource):
-    
     def get(self, id):
-        pass
+        if not session.get('user_id'):
+            return {'message': 'Unathorized'}, 401
 
-api.add_resource(ClearSession, '/clear', endpoint='clear')
-api.add_resource(IndexArticle, '/articles', endpoint='article_list')
-api.add_resource(ShowArticle, '/articles/<int:id>', endpoint='show_article')
-api.add_resource(Login, '/login', endpoint='login')
-api.add_resource(Logout, '/logout', endpoint='logout')
-api.add_resource(CheckSession, '/check_session', endpoint='check_session')
-api.add_resource(MemberOnlyIndex, '/members_only_articles', endpoint='member_index')
+        article = Article.query.filter(Article.is_member_only == True).first()
+        if article:
+            return article.to_dict(), 200
+        return {'message': 'Article not found'}, 404
+    
 api.add_resource(MemberOnlyArticle, '/members_only_articles/<int:id>', endpoint='member_article')
 
 
